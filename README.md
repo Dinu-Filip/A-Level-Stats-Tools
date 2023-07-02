@@ -1,4 +1,4 @@
-# A-Level-Stats-Tools
+# A Level Stats Tools
 Set of tools for automating calculations part of the A Level Mathematics and A Level Further Statistics specifications. These packages will be used as part of my statistics reference tool for my A Level Computing Coursework Project, World of Stats
 
 ## Probability distributions
