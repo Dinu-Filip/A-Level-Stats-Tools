@@ -1,59 +1,54 @@
-from decimal import *
 from decimal import Decimal
 import math
-from distribution_templates import DistributionTemplates
+from Distributions.distribution_templates import DistributionTemplates
+from scipy.stats import binom
 
 
 class Binomial:
-    binomial_pmf = """P(X = x) = \\binom{n}{x} p^x (1-p)^{n-x}"""
-    binomial_cdf = """P(X \\leq x) = \\sum_{{i = 1}}^{{x}} P(X=x)"""
-    binomial_mean = """E(X) = n \\times p"""
-    binomial_variance = """\\sigma^2 = np(1-p)"""
-    binomial_skewness = """\\gamma = \\frac{1 - 2p}{\\sqrt{np(1-p)}}"""
+    pmf_formula = r"P(X = x) = \binom{n}{x} p^x (1-p)^{n-x}"
+    cdf_formula = r"P(X \leq x) = \sum_{i = 1}^{x} P(X=x)"
+    mean_formula = r"E(X) = n \times p"
+    var_formula = r"\sigma^2 = np(1-p)"
+    skew_formula = r"\gamma = \frac{1 - 2p}{\sqrt{np(1-p)}}"
 
     @staticmethod
-    def pmf(n: int, p: Decimal, x: int) -> Decimal:
+    def pmf_calc(n: int, p: Decimal, x: int, dp: int) -> Decimal:
         #
-        # pmf used to calculate raw pmf value
+        # pmf_calc used to calculate raw pmf value
         # Used by cdf and graphing algorithms in frontend
         #
-        return Decimal(math.comb(n, x)) * Decimal(pow(p, x)) * Decimal(pow(1 - p, n - x))
+        return round(math.comb(n, x) * pow(p, x) * pow(1 - p, n - x), int(dp))
 
     @staticmethod
-    def pmf_method(n: int, p: Decimal, x: int, dp: int) -> dict:
-        """
-        :param dp: int, number of decimal places to round to
-        :param n:  int, total number of trials
-        :param p:  Decimal, probability of success
-        :param x:  int, number of successful trials
-        :return:   Decimal, value of pmf at particular x
-        """
-        if x > n:
-            raise ValueError("The number of successes must be less than or equal to the total number of trials")
-        binom_val = math.comb(n, x)
-        res = round(Binomial.pmf(n, p, x), dp)
+    def pmf(n_val: str, p_val: str, x_val: str, dp: str) -> dict:
+        comb = str(math.comb(int(n_val), int(x_val)))
+        res = str(Binomial.pmf_calc(int(n_val), Decimal(p_val), int(x_val), int(dp)))
         params = {
-            "n": n,
-            "p": p,
-            "x": x
+            "n": n_val,
+            "p": p_val,
+            "x": x_val,
+            "comb": comb,
+            "res": res
         }
-        method = f"""First find the binomial coefficient using the formula 
-                 \\(\\binom{{{n}}}{{{x}}} = \frac{{{n}!}}{{{x}!({n}-{x})!}}\\) or using Pascal's triangle\n
-                 \\(\binom{{{n}}}{{{x}}} = {math.comb(n, x)} \\) so
-                 \\begin{{align*}}
-                 P(X = {x}) &= \\binom{{{n}}}{{{x}}} \\times {p}^{x} \\times (1-{p})^{{{n}-{x}}} \\\\
-                 &= {binom_val} \\times \\ {p}^{x} \\ ({1 - p})^{{{n - x}}} \\\\
-                 &= {res}
-                 \end{{align*}}
-                 """
-        return {"res": res, "full_method": DistributionTemplates.discrete("Binomial",
-                                                                          "probability mass function, (PMF)",
-                                                                          Binomial.binomial_pmf,
-                                                                          params,
-                                                                          method)}
+        method = r"""First calculate the binomial coefficient: $\binom{#n#}{#x#} = \frac{#n#!}{#x#!(#n# - #x#)!} = #comb#$. 
+Then substitute into the equation: $P(X = #x#) = \binom{#n#}{#x#} #p#^#x# (1-#p#)^{#n#-#x#} = #res#$ """
+        return {"res": res, "method": DistributionTemplates.method_template("binomial",
+                                                                            "probability mass function",
+                                                                            Binomial.pmf_formula,
+                                                                            params,
+                                                                            method)}
 
     @staticmethod
-    def cdf(n: int, p: Decimal, lower_x: int, upper_x: int, dp: int) -> Decimal:
+    def cdf_calc(n: int, p: Decimal, lower_x: int, upper_x: int, dp: int) -> Decimal:
+        res = 0
+        for _ in range(0, upper_x + 1):
+            res += Binomial.pmf_calc(n, p, _, dp + 2)
+        for _ in range(0, lower_x):
+            res -= Binomial.pmf_calc(n, p, _, dp + 2)
+        return round(res, dp)
+
+    @staticmethod
+    def cdf(n_val: str, p_val: str, lower_x_val: str, upper_x_val: str, dp: str) -> dict:
         """
         :param dp: int, number of decimal places to round to
         :param n:  int, total number of trials
@@ -62,101 +57,111 @@ class Binomial:
         :param upper_x: int, upper limit of interval
         :return:   Decimal, value of cdf between limits
         """
-        if upper_x > n:
-            raise ValueError("The number of successes must be less than or equal to the total number of trials")
-        elif upper_x <= lower_x:
-            raise ValueError("The upper limit must be greater than the lower limit")
-        res = 0
-        for _ in range(0, upper_x + 1):
-            res += Binomial.pmf(n, p, _)
-        for _ in range(0, lower_x):
-            res -= Binomial.pmf(n, p, _)
-        res = round(res, dp)
-        params = {"n": n,
-                  "p": p,
-                  "x_1": lower_x,
-                  "x_2": upper_x}
-        method = f"""We know that \\(P(X \\leq x) = \\sum_{{i = 1}}^{{x}} P(X=x) 
-        = \\sum_{{i = 1}}^{{x}} \\binom{{n}}{{i}}p^i(1-p)^{{n-i}} \\) and that \\(P(a \\leq X \\leq b) 
-        = P(X \\leq b) - P(X < a) \\).
-        Substituting \\( a = x_1 \\) and \\( b = x_2 \\):
-        \\(P({{{lower_x}}} \\leq X \\leq {{{upper_x}}}) &= P(X \\leq {{{upper_x}}}) - P(X < {{{lower_x}}})\\
-        &= \\sum_{{i = 1}}^{{{upper_x}}} P(X = i) - \\sum_{{i = 1}}^{{{lower_x} - 1}} P(X = i)\\
-        &= {res} \\)
-        """
-        return {"res": res, "full_method": DistributionTemplates.discrete("binomial",
-                                                                          "cumulative distribution function, (CDF)",
-                                                                          Binomial.binomial_cdf,
-                                                                          params,
-                                                                          method)}
+        if lower_x_val == "":
+            lower_x_val = "0"
+        elif upper_x_val == "":
+            upper_x_val = n_val
+        res = str(Binomial.cdf_calc(int(n_val), Decimal(p_val), int(lower_x_val), int(upper_x_val), int(dp)))
+        params = {"n": n_val,
+                  "p": p_val,
+                  "x_1": lower_x_val,
+                  "x_2": upper_x_val,
+                  "res": res}
+        method = r"""We know that $P(X=x) = \binom{n}{x} p^x (1-p)^x$. Using the general formula for the cumulative distribution of a discrete random variable: \n $P(#x_1# \leq x \leq #x_2#) = P(X \leq #x_2#) - P(X \leq #x_1#) = \sum_{i=0}^{#x_1#} P(X=i) - \sum_{i=o}^{#x_2# - 1} P(X=i) = #res# """
+        return {"res": res, "method": DistributionTemplates.method_template("binomial",
+                                                                                 "cumulative distribution function, "
+                                                                                 "(CDF)",
+                                                                                 Binomial.cdf_formula,
+                                                                                 params,
+                                                                                 method)}
 
     @staticmethod
-    def mean(n: int, p: Decimal, dp: int) -> Decimal:
+    def inverse_binomial(n: str, p: str, P: str, dp: str):
+        res = str(round(binom.ppf(Decimal(P), n=int(n), p=Decimal(p)), int(dp)))
+        return {"res": res}
+
+    @staticmethod
+    def mean(n_val: str, p_val: str, dp: str) -> dict:
         """
         :param n:  int, total number of trials
         :param p:  Decimal, probability of success
         :return:   Decimal, mean of binomial distribution
         """
-        res = round(n * p, dp)
+        n = int(n_val)
+        p = Decimal(p_val)
+        res = str(round(n * p, int(dp)))
         params = {
-            "n": n,
-            "p": p
+            "n": n_val,
+            "p": p_val,
+            "res": res
         }
-        method = f"""
-        Substituting into the formula:
-        \\(E(x) = n \\times p = {n} \times {p} = {res}\\)
-        """
-        return {"res": res, "full_method": DistributionTemplates.discrete("binomial",
-                                                                          "mean",
-                                                                          Binomial.binomial_mean,
-                                                                          params,
-                                                                          method)}
+        method = r"""Substituting into the formula:
+$E(x) = #n# \times #p# = #res#$"""
+        return {"res": res, "method": DistributionTemplates.method_template("binomial",
+                                                                                 "mean",
+                                                                                 Binomial.mean_formula,
+                                                                                 params,
+                                                                                 method)}
 
     @staticmethod
-    def variance(n: int, p: Decimal, dp: int) -> Decimal:
+    def variance(n_val: str, p_val: str, dp: str) -> dict:
         """
         :param dp: int, number of decimal places
         :param n: int, total number of trials
         :param p: Decimal, probability of success
         :return:  Decimal, variance of binomial distribution
         """
-        res = round(n * p * (1 - p), dp)
+        n = int(n_val)
+        p = float(p_val)
+        res = str(round(n * p * (1 - p), int(dp)))
         params = {
-            "n": n,
-            "p": p
+            "n": n_val,
+            "p": p_val,
+            "res": res
         }
-        method = f"""
-        Substituting into the formula:
-        \\(\\sigma^2 = {n} \\times {p} \times {1 - p} = {res} \\) 
-        """
-        return {"res": res, "full_method": DistributionTemplates.discrete("binomial",
-                                                                          "variance",
-                                                                          Binomial.binomial_variance,
-                                                                          params,
-                                                                          method)}
+        method = r"""Substituting into the formula:
+$\sigma^2 = #n# \times #p# \times (1 - #p#) = #res# $"""
+        return {"res": res, "method": DistributionTemplates.method_template("binomial",
+                                                                                 "variance",
+                                                                                 Binomial.var_formula,
+                                                                                 params,
+                                                                                 method)}
 
     @staticmethod
-    def skewness(n: int, p: Decimal, dp: int) -> Decimal:
+    def skewness(n_val: str, p_val: str, dp: str) -> dict:
         """
         :param dp: int, number of decimal places to round to
         :param n: int, total number of trials
         :param p: Decimal, probability of success
         :return:  Decimal, skewness of binomial distribution
         """
-        standard_dev = math.sqrt(n * p * (1 - p))
-        res = round((1 - 2 * p) / standard_dev, dp)
+        n = int(n_val)
+        p = float(p_val)
+        standard_dev = str(round(math.sqrt(n * p * (1 - p)), int(dp)))
+        res = str(round((1 - 2 * p) / float(standard_dev), int(dp)))
         params = {
-            "n": n,
-            "p": p
+            "n": n_val,
+            "p": p_val,
+            "res": res,
+            "sigma": standard_dev
         }
-        method = f"""
-        First calculate the standard deviation which is given by \\(\sigma = \\sqrt{{np(1-p)}} 
-        = \\sqrt{{{n}}} \\times {p} \\times {1 - p}}} = {standard_dev} \\)
-        Then substitute into formula:
-        \\( \\gamma = \\frac{{1 - 2p}}{{\\sigma}} \\ &= \\frac{{{1 - 2 * p}}}{{{standard_dev}}} \\ &= {res} \\)
+        method = r"""First calculate the standard deviation which is given by $\sigma = \sqrt{np(1-p)} = \sqrt{#n# \times #p# \times (1 - #p#)} = #sigma#$
+Then substitute into formula:
+$\gamma = \frac{1 - 2 * #p#}{#sigma#} = {#res#}$
         """
-        return {"res": res, "full_method": DistributionTemplates.discrete("binomial",
-                                                                          "skewness",
-                                                                          Binomial.binomial_skewness,
-                                                                          params,
-                                                                          method)}
+        return {"res": res, "method": DistributionTemplates.method_template("binomial",
+                                                                                 "skewness",
+                                                                                 Binomial.skew_formula,
+                                                                                 params,
+                                                                                 method)}
+
+    @staticmethod
+    def binomial_bars(n: str, p: str) -> dict:
+        points = {}
+        for x in range(0, int(n) + 1):
+            points[str(x)] = str(Binomial.pmf_calc(int(n), Decimal(p), x, 3))
+        return points
+
+
+if __name__ == "__main__":
+    print(Binomial.pmf("50", "0.032", "2", "5"))
