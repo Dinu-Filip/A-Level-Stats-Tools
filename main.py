@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from Distributions.binomial import Binomial
 from Distributions.normal import Normal
 from Distributions.chi_squared import ChiSquared
+from pydantic import BaseModel
+from DataAnalysis.bivariate import BivariateAnalysis
 
 app = FastAPI()
 
@@ -36,7 +38,8 @@ async def normal(type_func: str, mu: str, sigma: str, dp: str, x_1: str | None =
 
 
 @app.get("/Chi-squared/{type_func}")
-async def normal(type_func: str, df: str, dp: str, x_1: str | None = None, x_2: str | None = None, P: str | None = None):
+async def normal(type_func: str, df: str, dp: str, x_1: str | None = None, x_2: str | None = None,
+                 P: str | None = None):
     result = {}
     if type_func == "cdf":
         result["cdf"] = ChiSquared.cdf(x_1, x_2, df, dp)
@@ -47,3 +50,15 @@ async def normal(type_func: str, df: str, dp: str, x_1: str | None = None, x_2: 
     result["skewness"] = ChiSquared.skewness(df, dp)
     result["graph_data"] = ChiSquared.chi_squared_points(df)
     return result
+
+
+class Item(BaseModel):
+    x_vals: list
+    y_vals: list
+    dp: str
+
+
+@app.post("/bivariate/")
+async def bivariate_analysis(vals: Item):
+    data_vals = vals.model_dump()
+    return BivariateAnalysis.generate_results(data_vals["x_vals"], data_vals["y_vals"], data_vals["dp"])
