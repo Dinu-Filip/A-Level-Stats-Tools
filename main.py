@@ -53,12 +53,12 @@ async def normal(type_func: str, df: str, dp: str, x_1: str | None = None, x_2: 
 
 
 class Item(BaseModel):
-    x_vals: list
-    y_vals: list
+    xVals: list
+    yVals: list
     dp: str
 
 
 @app.post("/bivariate/")
 async def bivariate_analysis(vals: Item):
     data_vals = vals.model_dump()
-    return BivariateAnalysis.generate_results(data_vals["x_vals"], data_vals["y_vals"], data_vals["dp"])
+    return BivariateAnalysis.generate_results(data_vals["xVals"], data_vals["yVals"], data_vals["dp"])
