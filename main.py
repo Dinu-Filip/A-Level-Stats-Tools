@@ -4,6 +4,7 @@ from Distributions.normal import Normal
 from Distributions.chi_squared import ChiSquared
 from pydantic import BaseModel
 from DataAnalysis.bivariate import BivariateAnalysis
+from HypothesisTests.distributional_parameters import  DistributionHT
 
 app = FastAPI()
 
@@ -57,8 +58,12 @@ class Item(BaseModel):
     yVals: list
     dp: str
 
-
 @app.post("/bivariate/")
 async def bivariate_analysis(vals: Item):
     data_vals = vals.model_dump()
     return BivariateAnalysis.generate_results(data_vals["xVals"], data_vals["yVals"], data_vals["dp"])
+
+
+@app.post("/dist-test/")
+async def dist_param_test(params: dict[str, str]):
+    return DistributionHT.distribution(params["distribution"], params["type_test"], params)
