@@ -5,6 +5,7 @@ from Distributions.chi_squared import ChiSquared
 from pydantic import BaseModel
 from DataAnalysis.bivariate import BivariateAnalysis
 from HypothesisTests.distributional_parameters import  DistributionHT
+from HypothesisTests.goodness_of_fit import GoodnessOfFit
 
 app = FastAPI()
 
@@ -67,3 +68,7 @@ async def bivariate_analysis(vals: Item):
 @app.post("/dist-test/")
 async def dist_param_test(params: dict[str, str]):
     return DistributionHT.distribution(params["distribution"], params["type_test"], params)
+
+@app.post("/gof-text")
+async def gof_test(params: dict[str, str]):
+    return GoodnessOfFit.goodness_of_fit(params)

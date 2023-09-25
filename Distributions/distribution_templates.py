@@ -7,8 +7,8 @@ class DistributionTemplates:
             if method[del_1] == "#":
                 if method[del_2] == "#":
                     key = method[del_1 + 1: del_2]
-                    method = method[:del_1] + params[key] + method[del_2 + 1:]
-                    del_1 += len(params[key])
+                    method = method[:del_1] + str(params[key]) + method[del_2 + 1:]
+                    del_1 += len(str(params[key]))
                     del_2 = del_1 + 1
                 else:
                     del_2 += 1
