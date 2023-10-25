@@ -14,8 +14,8 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
         total_successes = 0
         x_vals = params["xVals"]
         observed_vals = params["observedVals"]
-        n = params["n"]
-        num_observations = len(observed_vals)
+        n = int(params["n"])
+        num_observations = sum(params["observedVals"])
         for i in range(len(x_vals)):
             total_successes += x_vals[i] * observed_vals[i]
         method_1 += r"$\sum(r \times f_r) = " + str(total_successes) + "$"
@@ -26,12 +26,20 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
 
     @staticmethod
     def binomial_expected_freq(params):
+        print(params)
         observed_vals = params["observedVals"]
         total_freq = sum(observed_vals)
         x_vals = params["xVals"]
-        n = float(params["n"])
+        n = int(params["n"])
         p = float(params["p"])
-        expected_vals = [round(binom.pmf(float(x_vals[i]), n, p) * total_freq, 4) for i in range(len(x_vals))]
+        print(n)
+        print(p)
+        n_1 = 5
+        p_1 = 0.5
+        expected_vals = []
+        for i in range(len(x_vals)):
+            expected_vals.append(round(binom.pmf(x_vals[i], n, p) * total_freq, 4))
+        print(expected_vals)
         method = r"The binomial probability mass function is $" + GoodnessOfFit.binomial_mass_function + ". "
         method += "To calculate expected frequencies, use the binomial mass function on every value of $x$."
         method += "For this data, the expected values are " + ", ".join([str(val) for val in expected_vals])
@@ -156,14 +164,18 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
 
     @staticmethod
     def goodness_of_fit(params):
+        params["xVals"] = [int(num) for num in params["xVals"].split(params["delimiter"])]
+        params["observedVals"] = [int(num) for num in params["observedVals"].split(params["delimiter"])]
+        print(params)
         distribution = params["distribution"]
         prob = None
-        if bool(params["estimateParam"]):
+        if params["estimateParam"] == "true":
+            print("ok")
             param_name = params["estimateParamName"]
             step_estimate = f"Estimate the {param_name}"
             method_estimate = None
             match distribution:
-                case "binomial": prob, method_estimate = GoodnessOfFit.binomial_estimate(params)
+                case "Binomial": prob, method_estimate = GoodnessOfFit.binomial_estimate(params)
             params["p"] = prob
         else:
             prob = params["p"]
@@ -172,12 +184,13 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
         method_1 = None
         method_2 = None
         match distribution:
-            case "binomial": method_1, method_2 = GoodnessOfFit.binomial_hypotheses(params)
+            case "Binomial": method_1, method_2 = GoodnessOfFit.binomial_hypotheses(params)
         step_3 = "Calculate the expected frequency of each value of $x$ when modelled using a #distribution# distribution"
         method_3 = None
         expected_vals = None
         match distribution:
-            case "binomial": method_3, expected_vals = GoodnessOfFit.binomial_expected_freq(params)
+            case "Binomial": method_3, expected_vals = GoodnessOfFit.binomial_expected_freq(params)
+        print(expected_vals)
         step_4 = "Combine any cells with expected frequencies greater than 5"
         merge_regions, method_4 = GoodnessOfFit.merge_cells(params, expected_vals)
         step_5 = "Calculate the measure of goodness of fit, $X^2$"
@@ -198,7 +211,7 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
         steps = [DistributionTemplates.replace_vals(params, step) for step in steps]
         methods = [method_1, method_2, method_3, method_4, method_5, method_6, method_7, method_8]
         methods = [DistributionTemplates.replace_vals(params, method) for method in methods]
-        if float(params["estimateParam"]):
+        if params["estimateParam"] == "true":
             result["res"]["estimatedParam"] = prob
             result["test"]["1) " + step_estimate] = method_estimate
             for i in range(2, 10):
