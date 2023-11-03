@@ -2,6 +2,7 @@ from decimal import Decimal
 from scipy.stats import chi2
 from Distributions.distribution_templates import DistributionTemplates
 import math
+import numpy as np
 
 
 class ChiSquared:
@@ -27,14 +28,13 @@ class ChiSquared:
                 lower_x = 0
             res = ChiSquared.cdf_calc(float(lower_x), float(upper_x), int(deg_free), int(dp))
 
-        method = r"""The formula for the CDF of the chi-squared distribution uses the gamma and incomplete gamma 
-        functions, which are outside the scope of the A Level specification. """
+        method = r"""The formula for the CDF of the chi-squared distribution uses the gamma and incomplete gamma functions, which are outside the scope of the A Level specification. """
         return {"res": str(res), "method": method}
 
     @staticmethod
     def mean(deg_free: str):
         params = {"k": deg_free}
-        method = r"""Substituting into the formula: E(X) = #k# = #k#"""
+        method = r"""Substituting into the formula: $E(X) = #k# = #k#$"""
         return {"res": deg_free, "method": DistributionTemplates.method_template("chi-squared",
                                                                                  "mean",
                                                                                  ChiSquared.chi_squared_mean,
@@ -44,7 +44,7 @@ class ChiSquared:
     @staticmethod
     def variance(deg_free: str):
         params = {"k": deg_free, "res": str(2 * int(deg_free))}
-        method = r"""Substituting into the formula: \sigma^2 = 2 \times #k# = #res#"""
+        method = r"""Substituting into the formula: $\sigma^2 = 2 \times #k# = #res#$"""
         return {"res": str(2 * int(deg_free)), "method": DistributionTemplates.method_template("chi-squared",
                                                                                                "variance",
                                                                                                ChiSquared.chi_squared_variance,
@@ -55,7 +55,7 @@ class ChiSquared:
     def skewness(deg_free: str, dp: str):
         res = str(round(math.sqrt(8 / int(deg_free)), int(dp)))
         params = {"k": deg_free, "res": res}
-        method = r"""Substituting into the formula: \gamma = \sqrt{\frac{8}{#k#} = #res#"""
+        method = r"""Substituting into the formula: $\gamma = \sqrt{\frac{8}{#k#}} = #res#$"""
         return {"res": res, "method": DistributionTemplates.method_template("chi-squared",
                                                                             "skewness",
                                                                             ChiSquared.chi_squared_skewness,
@@ -64,16 +64,23 @@ class ChiSquared:
 
     @staticmethod
     def inverse_chi_squared(deg_free: str, P: str, dp: str) -> dict:
-        res = str(round(chi2.ppf(Decimal(P), df=int(deg_free)), int(dp)))
+        res = str(round(chi2.ppf(float(P), df=int(deg_free)), int(dp)))
         return {"res": res}
 
     @staticmethod
-    def chi_squared_points(deg_free: str) -> dict:
+    def chi_squared_points(deg_free: str, lower: str | None, upper: str | None) -> dict:
         min_x = round(chi2.ppf(0.999, df=int(deg_free)), 2)
         max_x = round(chi2.ppf(0.001, df=int(deg_free)), 2)
         points = {}
-        for x in range(min_x, max_x, (max_x - min_x) / 100):
-            points[x] = chi2.pdf(x, df=int(deg_free))
+        point_vals = list(np.linspace(min_x, max_x, 100))
+        if lower:
+            point_vals.append(float(lower))
+        if upper:
+            point_vals.append(float(upper))
+        point_vals.sort()
+        deg_free = int(deg_free)
+        for val in point_vals:
+            points[str(val)] = str(chi2.pdf(val, df=deg_free))
         return points
 
 

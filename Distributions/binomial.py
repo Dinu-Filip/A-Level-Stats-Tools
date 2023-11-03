@@ -17,7 +17,7 @@ class Binomial:
         # pmf_calc used to calculate raw pmf value
         # Used by cdf and graphing algorithms in frontend
         #
-        return round(math.comb(n, x) * pow(p, x) * pow(1 - p, n - x), int(dp))
+        return round(binom.pmf(x, n=n, p=float(p)), int(dp))
 
     @staticmethod
     def pmf(n_val: str, p_val: str, x_val: str, dp: str) -> dict:
@@ -39,7 +39,7 @@ Then substitute into the equation: $P(X = #x#) = \binom{#n#}{#x#} #p#^#x# (1-#p#
                                                                             method)}
 
     @staticmethod
-    def cdf_calc(n: int, p: Decimal, lower_x: int, upper_x: int, dp: int) -> Decimal:
+    def cdf_calc(n: int, p: Decimal, lower_x: int, upper_x: int, dp: int):
         res = 0
         for _ in range(0, upper_x + 1):
             res += Binomial.pmf_calc(n, p, _, dp + 2)
@@ -67,7 +67,7 @@ Then substitute into the equation: $P(X = #x#) = \binom{#n#}{#x#} #p#^#x# (1-#p#
                   "x_1": lower_x_val,
                   "x_2": upper_x_val,
                   "res": res}
-        method = r"""We know that $P(X=x) = \binom{n}{x} p^x (1-p)^x$. Using the general formula for the cumulative distribution of a discrete random variable: \n $P(#x_1# \leq x \leq #x_2#) = P(X \leq #x_2#) - P(X \leq #x_1#) = \sum_{i=0}^{#x_1#} P(X=i) - \sum_{i=o}^{#x_2# - 1} P(X=i) = #res# """
+        method = r"""We know that $P(X=x) = \binom{n}{x} p^x (1-p)^x$. Using the general formula for the cumulative distribution of a discrete random variable: \n $P(#x_1# \leq x \leq #x_2#) = P(X \leq #x_2#) - P(X \leq #x_1#) = \sum_{i=0}^{#x_1#} P(X=i) - \sum_{i=0}^{#x_2# - 1} P(X=i) = #res#$ """
         return {"res": res, "method": DistributionTemplates.method_template("binomial",
                                                                                  "cumulative distribution function, "
                                                                                  "(CDF)",
@@ -77,7 +77,7 @@ Then substitute into the equation: $P(X = #x#) = \binom{#n#}{#x#} #p#^#x# (1-#p#
 
     @staticmethod
     def inverse_binomial(n: str, p: str, P: str, dp: str):
-        res = str(round(binom.ppf(Decimal(P), n=int(n), p=Decimal(p)), int(dp)))
+        res = str(int(round(binom.ppf(float(P), n=int(n), p=float(p)), int(dp))))
         return {"res": res}
 
     @staticmethod

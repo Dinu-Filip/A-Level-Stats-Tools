@@ -4,6 +4,7 @@ from Distributions.normal import Normal
 from Distributions.chi_squared import ChiSquared
 from pydantic import BaseModel
 from DataAnalysis.bivariate import BivariateAnalysis
+from DataAnalysis.univariate import UnivariateAnalysis
 from HypothesisTests.distributional_parameters import DistributionHT
 from HypothesisTests.goodness_of_fit import GoodnessOfFit
 
@@ -35,7 +36,7 @@ async def normal(type_func: str, mu: str, sigma: str, dp: str, x_1: str | None =
         result["cdf"] = Normal.cdf(mu, sigma, x_1, x_2, dp)
     else:
         result["inv"] = Normal.inverse_normal(mu, sigma, P, dp)
-    result["graph_data"] = Normal.normal_points(mu, sigma)
+    result["graph_data"] = Normal.normal_points(mu, sigma, x_1, x_2)
     return result
 
 
@@ -50,7 +51,7 @@ async def normal(type_func: str, df: str, dp: str, x_1: str | None = None, x_2: 
     result["mean"] = ChiSquared.mean(df)
     result["variance"] = ChiSquared.variance(df)
     result["skewness"] = ChiSquared.skewness(df, dp)
-    result["graph_data"] = ChiSquared.chi_squared_points(df)
+    result["graph_data"] = ChiSquared.chi_squared_points(df, x_1, x_2)
     return result
 
 
@@ -59,6 +60,10 @@ class Item(BaseModel):
     yVals: list
     dp: str
 
+@app.post("/univariate/")
+async def univariate_analysis(vals: Item):
+    data_vals = vals.model_dump()
+    return UnivariateAnalysis.generate_results(data_vals["xVals"], data_vals["yVals"], data_vals["dp"])
 
 @app.post("/bivariate/")
 async def bivariate_analysis(vals: Item):

@@ -9,7 +9,7 @@ class GoodnessOfFit:
     @staticmethod
     def binomial_estimate(params: dict):
         method_1 = r"""The formula for estimate the probability of success with a binomial distribution is:
-$p = \frac{\sum(r \times f_r)}{n \times N}
+$p = \frac{\sum(r \times f_r)}{n \times N}$
 where $r$ is the number of successes, $f_r$ is the number of times that $x$ successes were observed (the observed frequency), $n$ is the number of trials and $N$ is the number of observations"""
         total_successes = 0
         x_vals = params["xVals"]
@@ -19,30 +19,26 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
         for i in range(len(x_vals)):
             total_successes += x_vals[i] * observed_vals[i]
         method_1 += r"$\sum(r \times f_r) = " + str(total_successes) + "$"
-        method_1 += r"$n \times N = " + str(n * num_observations) + "$"
+        method_1 += r", $n \times N = " + str(n * num_observations) + "$. "
         prob = round(total_successes / (n * num_observations), 4)
         method_1 += r"Therefore, $p = " + str(prob) + "$"
         return prob, method_1
 
     @staticmethod
     def binomial_expected_freq(params):
-        print(params)
         observed_vals = params["observedVals"]
         total_freq = sum(observed_vals)
         x_vals = params["xVals"]
         n = int(params["n"])
         p = float(params["p"])
-        print(n)
-        print(p)
-        n_1 = 5
-        p_1 = 0.5
         expected_vals = []
         for i in range(len(x_vals)):
             expected_vals.append(round(binom.pmf(x_vals[i], n, p) * total_freq, 4))
-        print(expected_vals)
-        method = r"The binomial probability mass function is $" + GoodnessOfFit.binomial_mass_function + ". "
-        method += "To calculate expected frequencies, use the binomial mass function on every value of $x$."
-        method += "For this data, the expected values are " + ", ".join([str(val) for val in expected_vals])
+        method = r"The binomial probability mass function is $" + GoodnessOfFit.binomial_mass_function + "$. "
+        method += ("""
+To calculate expected frequencies, use the binomial mass function on every value of $x$.""")
+        method += ("""
+For this data, the expected values are """) + ", ".join([str(val) for val in expected_vals])
         return method, expected_vals
 
     @staticmethod
@@ -56,11 +52,13 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
         method_4 = "To be able to use the chi-squared distribution to model the measure of goodness of fit, $X^2$, each of the expected frequencies must be greater than 5. "
         x_vals = params["xVals"]
         merge_regions = []
-        end_region = None
         idx_1 = 0
         idx_2 = 1
         while idx_2 < len(expected_frequencies):
             current_freq = expected_frequencies[idx_1]
+            #
+            # Merges adjacent cells until they sum to greater than 5
+            #
             if current_freq < 5:
                 if sum(expected_frequencies[idx_1:idx_2 + 1]) < 5:
                     idx_2 += 1
@@ -70,9 +68,18 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
             idx_1 = idx_2
             idx_2 += 1
         if expected_frequencies[idx_1] < 5:
+            #
+            # If the element at idx_1 is less than 5 and no merge regions have been added,
+            # then all the elements from that index to the end sum to less than 5
+            # so must be combined with the element before
+            #
             if len(merge_regions) == 0:
                 merge_regions.append([idx_1 - 1, idx_2 - 1])
             else:
+                #
+                # If the element overlaps with or is adjacent to the previous region, it and all
+                # subsequent elements must be merged with that region
+                #
                 if merge_regions[-1][0] <= idx_1 <= (merge_regions[-1][1] + 1):
                     merge_regions[-1][1] = idx_2 - 1
                 else:
@@ -87,8 +94,9 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
 
         if len(merge_regions) > 0:
             method_4 += "The expected frequencies " + ", ".join([str(freq) for freq in
-                expected_frequencies]) + " are less than 5, so they need to be merged with adjacent frequencies"
-            method_4 += "We can merge the expected frequencies at x = "
+                                                                 small_freq]) + " are less than 5, so they need to be merged with adjacent frequencies."
+            method_4 += """
+We can merge the expected frequencies at x = """
             for region in merge_regions:
                 for i in range(region[0], region[1] + 1):
                     method_4 += str(x_vals[i]) + ", "
@@ -101,21 +109,28 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
 
     @staticmethod
     def calculate_measure_of_fit(params, expected_vals, merge_regions):
-        method_5 = r"To calculate the measure of goodness of fit, use the formula $X^2 = \sum{\frac{(O_i - E_i)^2/E_i}}$. Use the values of the observed and expected frequencies from the table above after merging."
+        method_5 = r"To calculate the measure of goodness of fit, use the formula $X^2 = \sum{\frac{(O_i - E_i)^2}{E_i}}$. Use the values of the observed and expected frequencies from the table above after merging."
         observed_vals = params["observedVals"]
         region_idx = 0
         merged_observed = []
         merged_expected = []
-        for i in range(len(observed_vals)):
-            current_region = merge_regions[region_idx]
-            if current_region[0] < i <= current_region[1]:
-                merged_observed[-1] += observed_vals[i]
-                merged_expected[-1] += expected_vals[i]
-                if i == current_region[1]:
-                    region_idx += 1
-            else:
-                merged_observed.append(observed_vals[i])
-                merged_expected.append(expected_vals[i])
+        if len(merge_regions) > 0:
+            for i in range(len(observed_vals)):
+                current_region = merge_regions[region_idx]
+                #
+                # Adds the number in adjacent cells represented by the merge regions
+                #
+                if current_region[0] < i <= current_region[1]:
+                    merged_observed[-1] += observed_vals[i]
+                    merged_expected[-1] += expected_vals[i]
+                    if i == current_region[1]:
+                        region_idx += 1
+                else:
+                    merged_observed.append(observed_vals[i])
+                    merged_expected.append(expected_vals[i])
+        else:
+            merged_observed = observed_vals
+            merged_expected = expected_vals
         measure_of_fit = 0
         for i in range(len(merged_observed)):
             measure_of_fit += ((merged_observed[i] - merged_expected[i]) ** 2) / merged_expected[i]
@@ -123,16 +138,18 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
         return merged_observed, merged_expected, measure_of_fit, method_5
 
     @staticmethod
-    def num_deg_free(expected_vals, merged_observed, estimate_param):
-        method_6 = "The number of degrees of freedom is found by subtracting the number of constraints from the number of cells after merging."
-        if estimate_param:
-            method_6 += "Since the #estimateParamName# was estimated by calculation, this introduces an additional constraint."
-            method_6 += "There are therefore two constrains total - the estimated #estimateParamName and the requirement that the expected frequencies and observed"
+    def num_deg_free(merged_observed, estimate_param):
+        method_6 = "The number of degrees of freedom is found by subtracting the number of constraints from the number of cells after merging. "
+        if estimate_param == "true":
+            method_6 += "Since the #estimateParamName# was estimated by calculation, this introduces an additional constraint. "
+            method_6 += ("""
+There are therefore two constrains total - the estimated #estimateParamName# and the requirement that the total number of expected frequencies is the same as the total number of observed frequencies: """)
             num_regions = len(merged_observed)
             num_deg = len(merged_observed) - 2
             method_6 += "$v = " + str(num_regions) + " - 2 = " + str(num_deg) + "$"
         else:
-            method_6 += "There is only one constraint - the total number of observed frequencies must equal the total number of expected frequencies"
+            method_6 += """
+There is only one constraint - the total number of observed frequencies must equal the total number of expected frequencies: """
             num_regions = len(merged_observed)
             num_deg = len(merged_observed) - 1
             method_6 += "$v = " + str(num_regions) + " - 1 = " + str(num_deg) + "$"
@@ -142,7 +159,7 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
     def calculate_critical_val(num_deg_free, sig_level):
         sig_level = round(float(sig_level), 4)
         method_7 = "We use the chi-squared distribution to model the measure of goodness of fit. We can use the inverse chi-squared function with " + str(
-            num_deg_free) + " of freedom"
+            num_deg_free) + " degrees of freedom: "
         critical_value = round(chi2.ppf(1 - sig_level, df=num_deg_free), 4)
         method_7 += r"$\chi_" + str(num_deg_free) + r"^2(" + str(sig_level) + ") = " + str(critical_value) + "$"
         return critical_value, method_7
@@ -153,7 +170,7 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
         if measure_of_fit < critical_value:
             result = True
             method_8 += str(measure_of_fit) + " < " + str(
-                critical_value) + " so the measure of fit is not in the critical region"
+                critical_value) + " so the measure of fit is not in the critical region. "
             method_8 += "This suggests that there is insufficient evidence to reject the null hypothesis. This means that under this significance level, the data can be modelled using a #distribution# distribution"
         else:
             method_8 += str(measure_of_fit) + " > " + str(
@@ -166,11 +183,9 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
     def goodness_of_fit(params):
         params["xVals"] = [int(num) for num in params["xVals"].split(params["delimiter"])]
         params["observedVals"] = [int(num) for num in params["observedVals"].split(params["delimiter"])]
-        print(params)
         distribution = params["distribution"]
         prob = None
         if params["estimateParam"] == "true":
-            print("ok")
             param_name = params["estimateParamName"]
             step_estimate = f"Estimate the {param_name}"
             method_estimate = None
@@ -179,18 +194,17 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
             params["p"] = prob
         else:
             prob = params["p"]
-        step_1 = "State the null hypothesis: $H_0$: A #distribution# distribution is a suitable model"
-        step_2 = "State the alternative hypothesis: $H_1$: A #distribution# distribution is not a suitable model"
+        step_1 = "State the null hypothesis: $H_0$: #distribution# distribution is suitable"
+        step_2 = "State the alternative hypothesis: $H_1$: #distribution# distribution is not suitable model"
         method_1 = None
         method_2 = None
         match distribution:
             case "Binomial": method_1, method_2 = GoodnessOfFit.binomial_hypotheses(params)
-        step_3 = "Calculate the expected frequency of each value of $x$ when modelled using a #distribution# distribution"
+        step_3 = "Calculate the expected frequency of each value of $x$"
         method_3 = None
         expected_vals = None
         match distribution:
             case "Binomial": method_3, expected_vals = GoodnessOfFit.binomial_expected_freq(params)
-        print(expected_vals)
         step_4 = "Combine any cells with expected frequencies greater than 5"
         merge_regions, method_4 = GoodnessOfFit.merge_cells(params, expected_vals)
         step_5 = "Calculate the measure of goodness of fit, $X^2$"
@@ -198,9 +212,9 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
                                                                                                             expected_vals,
                                                                                                             merge_regions)
         step_6 = "Calculate number of degrees of freedom"
-        num_deg_free, method_6 = GoodnessOfFit.num_deg_free(expected_vals, merged_observed, params["estimateParam"])
+        num_deg_free, method_6 = GoodnessOfFit.num_deg_free(merged_observed, params["estimateParam"])
         step_7 = "Use the chi-squared distribution with " + str(
-            num_deg_free) + " degrees of freedom to find the critical value"
+            num_deg_free) + f" degrees {'s' if num_deg_free > 1 else ''} of freedom to find the critical value"
         critical_value, method_7 = GoodnessOfFit.calculate_critical_val(num_deg_free, params["sigLevel"])
         step_8 = "Compare measure of fit to critical value"
         result, method_8 = GoodnessOfFit.compare_critical_value(critical_value, measure_of_fit)
@@ -220,6 +234,7 @@ where $r$ is the number of successes, $f_r$ is the number of times that $x$ succ
             for i in range(1, 9):
                 result["test"][f"{i}) " + steps[i - 1]] = methods[i - 1]
         return result
+
 
 if __name__ == "__main__":
     print(GoodnessOfFit.goodness_of_fit({"distribution": "binomial",

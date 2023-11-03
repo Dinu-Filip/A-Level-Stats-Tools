@@ -52,7 +52,10 @@ $\sigma = \sqrt{\frac{#square_sum#}{#len#} - (#mean#)^2} = #res#$"""
         s_xx = round(x_square_sum - ((x_sum ** 2) / length), int(dp) + 2)
         s_yy = round(y_square_sum - ((y_sum ** 2) / length), int(dp) + 2)
         s_xy = round(product_sum - ((x_sum * y_sum) / length), int(dp) + 2)
-        res = round(s_xy / math.sqrt(s_xx * s_yy), int(dp))
+        try:
+            res = round(s_xy / math.sqrt(s_xx * s_yy), int(dp))
+        except ZeroDivisionError:
+            return {"res": "-"}
         params = {
             "formula": BivariateAnalysis.pmcc_formula,
             "s_xx_formula": BivariateAnalysis.s_xx_formula,
